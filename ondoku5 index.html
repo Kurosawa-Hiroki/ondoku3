@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英語おんどく ろくおん＆文字起こし</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", MeiRyo, sans-serif;
+            background-color: #f0f9ff;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .app-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 480px;
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.15);
+            text-align: center;
+            border: 4px solid #bae6fd;
+        }
+
+        h1 {
+            color: #0284c7;
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .recording-status {
+            height: 24px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            visibility: hidden;
+        }
+
+        .recording-status.active { visibility: visible; }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+            100% { transform: scale(0.95); opacity: 1; }
+        }
+
+        .timer-display {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #475569;
+            background-color: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: 16px;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:disabled {
+            background-color: #cbd5e1 !important;
+            color: #94a3b8 !important;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .btn-record { background-color: #ff6b6b; color: white; }
+        .btn-record:hover:not(:disabled) { background-color: #fa5252; }
+
+        .btn-stop { background-color: #64748b; color: white; }
+        .btn-stop:hover:not(:disabled) { background-color: #475569; }
+
+        .btn-play { background-color: #4ade80; color: #14532d; }
+        .btn-play:hover:not(:disabled) { background-color: #22c55e; color: white; }
+
+        .btn-retry { background-color: #f59e0b; color: white; }
+        .btn-retry:hover:not(:disabled) { background-color: #d97706; }
+
+        .btn-download { background-color: #0284c7; color: white; }
+        .btn-download:hover:not(:disabled) { background-color: #0369a1; }
+
+        .btn-classroom { 
+            background-color: #0f9d58; 
+            color: white; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .btn-classroom:hover { background-color: #0b8043; }
+
+        .audio-player-container {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .audio-player-container audio {
+            width: 100%;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-control {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .btn-control:hover:not(:disabled) {
+            background-color: #0369a1;
+        }
+
+        .btn-control:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .speed-select-label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #475569;
+            margin-left: 5px;
+        }
+
+        .speed-select {
+            padding: 6px 10px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #334155;
+            outline: none;
+            background-color: white;
+        }
+
+        .transcript-container {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .transcript-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .transcript-box {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 2px solid #a7f3d0;
+            border-radius: 12px;
+            background-color: #f0fdf4;
+            font-family: "Century", "Century Schoolbook", "TeX Gyre Schola", serif;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            color: #333;
+            box-sizing: border-box;
+            resize: none;
+            outline: none;
+        }
+
+        .submission-area {
+            border-top: 2px dashed #bae6fd;
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .problem-container {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .teacher-settings {
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 2px solid #bae6fd;
+            border-radius: 14px;
+            background: #f8fcff;
+            text-align: left;
+        }
+
+        .teacher-settings summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #0369a1;
+        }
+
+        .expected-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #0284c7;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .expected-box {
+            width: 100%;
+            min-height: 110px;
+            padding: 12px;
+            border: 2px solid #bae6fd;
+            border-radius: 12px;
+            background-color: #f8fcff;
+            font-family: "Century", "Century Schoolbook", "TeX Gyre Schola", serif;
+            font-size: 1.15rem;
+            line-height: 1.5;
+            color: #333;
+            box-sizing: border-box;
+            resize: vertical;
+            outline: none;
+        }
+
+        .recognition-note {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-card">
+        <h1>📖 英語おんどくアプリ</h1>
+
+        <div class="recording-status" id="recordingStatus">
+            <div class="pulse-dot"></div>
+            <span>ろくおん＆文字おこし中...</span>
+        </div>
+
+        <div class="timer-display" id="timer">00:00</div>
+
+        <div class="btn-container">
+            <button id="startBtn" class="btn btn-record">
+                🎤 ろくおん スタート
+            </button>
+            <button id="stopBtn" class="btn btn-stop" disabled>
+                ⏹️ ストップ
+            </button>
+            <button id="playBtn" class="btn btn-play" disabled>
+                ▶️ きいてみる
+            </button>
+            <button id="retryBtn" class="btn btn-retry" disabled>
+                🔄 もういちど ろくおん
+            </button>
+        </div>
+
+        <!-- 音声プレイヤー ＆ コントロールパネル -->
+        <div class="audio-player-container">
+            <audio id="audioPlayer" controls></audio>
+            <div class="audio-controls">
+                <button id="rewindBtn" class="btn-control" disabled>↺ 5秒戻る</button>
+                <button id="forwardBtn" class="btn-control" disabled>5秒進む ↻</button>
+                <span class="speed-select-label">はやさ:</span>
+                <select id="speedSelect" class="speed-select" disabled>
+                    <option value="0.75">0.75倍 (ゆっくり)</option>
+                    <option value="1.0" selected>1.0倍 (標準)</option>
+                    <option value="1.25">1.25倍 (やや速い)</option>
+                    <option value="1.5">1.5倍 (速い)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 音読問題 選択・自由入力エリア -->
+        <div class="problem-container">
+            <div class="expected-label">📝 読む問題を選択 または 自分で入力</div>
+            <select id="problemSelect" class="speed-select" style="width:100%; font-size:1rem; padding:10px;">
+                <option value="custom">✨ 自分で英文を入力して音読する</option>
+            </select>
+            
+            <div id="problemTextDisplay" class="expected-box" style="margin-top:8px; min-height:80px; white-space:pre-wrap; display:none;"></div>
+            
+            <textarea id="customTextInput" class="expected-box" style="margin-top:8px; min-height:80px;"
+                placeholder="ここに音読したい英語を入力してください..."></textarea>
+            
+            <div id="problemSourceNote" class="recognition-note">
+                選択した問題または入力した英文を見ながら音読しましょう。
+            </div>
+        </div>
+
+        <!-- 文字起こしエリア -->
+        <div class="transcript-container">
+            <div class="transcript-label">
+                <span>🗣️ あなたが発音した英語（文字起こし）:</span>
+            </div>
+            <textarea id="transcriptBox" class="transcript-box" readonly placeholder="ろくおんを開始すると、ここに文字が表示されます..."></textarea>
+            <div class="recognition-note">
+                ※ AndroidではGoogle Chromeの音声認識を使用します。初回はマイクの許可を「許可」にしてください。
+            </div>
+        </div>
+
+        <!-- 先生用：問題登録 -->
+        <details class="teacher-settings">
+            <summary>👩‍🏫 先生用：音読問題を登録・編集</summary>
+            <div style="margin-top:12px; text-align:left;">
+                <input id="problemTitleInput" type="text" placeholder="問題名（例：Lesson 1）"
+                    style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:10px; box-sizing:border-box; margin-bottom:8px;">
+                <textarea id="problemTextInput" placeholder="生徒に読ませる英文を入力"
+                    style="width:100%; min-height:120px; padding:10px; border:1px solid #cbd5e1; border-radius:10px; box-sizing:border-box; resize:vertical; font-family:inherit;"></textarea>
+                <button id="saveProblemBtn" class="btn btn-control" style="width:100%; margin-top:8px;">
+                    ➕ 問題を登録・更新
+                </button>
+                <button id="deleteProblemBtn" class="btn btn-stop" style="width:100%; margin-top:8px;" disabled>
+                    🗑️ 選択中の問題を削除
+                </button>
+                <div class="recognition-note">
+                    ※ この版では問題データを端末内（ブラウザのlocalStorage）に保存します。
+                    同じ端末・同じブラウザなら次回も利用できます。
+                </div>
+            </div>
+        </details>
+
+        <div class="submission-area">
+            <button id="downloadBtn" class="btn btn-download" disabled>
+                💾 音声（おんせい）ファイルを保存
+            </button>
+
+            <!-- Google Classroom を別タブで開くボタン -->
+            <a href="https://classroom.google.com/" target="_blank" rel="noopener noreferrer" class="btn btn-classroom">
+                🏫 Google Classroom をひらく
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const playBtn = document.getElementById('playBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const problemSelect = document.getElementById('problemSelect');
+        const problemTextDisplay = document.getElementById('problemTextDisplay');
+        const customTextInput = document.getElementById('customTextInput');
+        const problemTitleInput = document.getElementById('problemTitleInput');
+        const problemTextInput = document.getElementById('problemTextInput');
+        const saveProblemBtn = document.getElementById('saveProblemBtn');
+        const deleteProblemBtn = document.getElementById('deleteProblemBtn');
+        const timerDisplay = document.getElementById('timer');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const transcriptBox = document.getElementById('transcriptBox');
+
+        const rewindBtn = document.getElementById('rewindBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const speedSelect = document.getElementById('speedSelect');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let audioUrl = null;
+        let timerInterval;
+        let seconds = 0;
+        let isRecording = false;
+
+        let finalTranscript = '';
+
+        function formatTranscript(text) {
+            if (!text) return '';
+
+            let formatted = text
+                .replace(/\b(period|full stop)\b/gi, '.')
+                .replace(/ピリオド/g, '.')
+                .replace(/\b(question mark)\b/gi, '?')
+                .replace(/クエスチョンマーク/g, '?')
+                .replace(/\b(comma)\b/gi, ',')
+                .replace(/カンマ/g, ',');
+
+            formatted = formatted.replace(/\s+([.?,])/g, '$1');
+
+            formatted = formatted.replace(/(?:^|[.?!]\s*)([a-z])/g, (match, letter) => {
+                return match.replace(letter, letter.toUpperCase());
+            });
+
+            return formatted;
+        }
+
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        let recognitionRunning = false;
+        let recognitionRestartTimer = null;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                recognitionRunning = true;
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        finalTranscript += result[0].transcript.trim() + ' ';
+                    } else {
+                        interimTranscript += result[0].transcript;
+                    }
+                }
+                transcriptBox.value = formatTranscript(finalTranscript + interimTranscript);
+                transcriptBox.scrollTop = transcriptBox.scrollHeight;
+            };
+
+            recognition.onend = () => {
+                recognitionRunning = false;
+                if (isRecording) {
+                    clearTimeout(recognitionRestartTimer);
+                    recognitionRestartTimer = setTimeout(() => {
+                        if (!isRecording || recognitionRunning) return;
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log("音声認識の再起動待機:", e);
+                        }
+                    }, isAndroid ? 250 : 100);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                recognitionRunning = false;
+                console.error("音声認識エラー:", event.error);
+
+                if (isRecording && ['no-speech', 'audio-capture', 'network', 'aborted'].includes(event.error)) {
+                    clearTimeout(recognitionRestartTimer);
+                    recognitionRestartTimer = setTimeout(() => {
+                        if (!isRecording || recognitionRunning) return;
+                        try {
+                            recognition.start();
+                        } catch (e) {}
+                    }, 400);
+                }
+
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    transcriptBox.value =
+                        "※ 音声認識が許可されていません。Chromeのサイト設定で「マイク」を許可し、ページを再読み込みしてください。";
+                }
+            };
+        } else {
+            transcriptBox.value =
+                "※ お使いのブラウザは音声認識に対応していません。AndroidではGoogle Chromeを使用してください。";
+        }
+
+        function updateTimer() {
+            seconds++;
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            timerDisplay.textContent = `${mins}:${secs}`;
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            timerDisplay.textContent = "00:00";
+        }
+
+        // 録音開始
+        startBtn.addEventListener('click', async () => {
+            try {
+                if (!window.isSecureContext) {
+                    alert('このアプリはAndroidではHTTPS（例：GitHub Pages）で開いてください。');
+                    return;
+                }
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert('このブラウザではマイク機能が使えません。Google Chromeで開いてください。');
+                    return;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayer.src = audioUrl;
+
+                    playBtn.disabled = false;
+                    retryBtn.disabled = false;
+                    downloadBtn.disabled = false;
+                    rewindBtn.disabled = false;
+                    forwardBtn.disabled = false;
+                    speedSelect.disabled = false;
+
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                finalTranscript = '';
+
+                if (recognition) {
+                    transcriptBox.value = '';
+                    clearTimeout(recognitionRestartTimer);
+                    recognitionRunning = false;
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        console.log("音声認識起動待機:", e);
+                        setTimeout(() => {
+                            if (isRecording && !recognitionRunning) {
+                                try { recognition.start(); } catch(e2) {}
+                            }
+                        }, 300);
+                    }
+                }
+
+                resetTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+                recordingStatus.classList.add('active');
+
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                playBtn.disabled = true;
+                retryBtn.disabled = true;
+                downloadBtn.disabled = true;
+                rewindBtn.disabled = true;
+                forwardBtn.disabled = true;
+                speedSelect.disabled = true;
+
+            } catch (err) {
+                alert('マイクへのアクセスが拒否されたか、マイクが見つかりませんでした。');
+                console.error(err);
+            }
+        });
+
+        // 録音停止
+        stopBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                isRecording = false;
+                mediaRecorder.stop();
+                clearInterval(timerInterval);
+
+                clearTimeout(recognitionRestartTimer);
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                    recognitionRunning = false;
+                }
+
+                recordingStatus.classList.remove('active');
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+
+        // 再生ボタン
+        playBtn.addEventListener('click', () => {
+            if (audioUrl) {
+                audioPlayer.play();
+            }
+        });
+
+        // リトライボタン
+        retryBtn.addEventListener('click', () => {
+            audioPlayer.pause();
+            audioPlayer.src = "";
+            audioUrl = null;
+            audioBlob = null;
+            finalTranscript = '';
+
+            resetTimer();
+            transcriptBox.value = "";
+            updateSelectedProblem();
+
+            playBtn.disabled = true;
+            retryBtn.disabled = true;
+            downloadBtn.disabled = true;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+
+            rewindBtn.disabled = true;
+            forwardBtn.disabled = true;
+            speedSelect.disabled = true;
+            speedSelect.value = "1.0";
+            audioPlayer.playbackRate = 1.0;
+        });
+
+        // =========================
+        // 音読問題の登録・選択
+        // =========================
+        const PROBLEM_STORAGE_KEY = 'ondokuProblemsV1';
+        let problems = [];
+
+        function loadProblems() {
+            try {
+                problems = JSON.parse(localStorage.getItem(PROBLEM_STORAGE_KEY) || '[]');
+                if (!Array.isArray(problems)) problems = [];
+            } catch (e) {
+                problems = [];
+            }
+            renderProblemSelect();
+        }
+
+        function saveProblems() {
+            localStorage.setItem(PROBLEM_STORAGE_KEY, JSON.stringify(problems));
+        }
+
+        function renderProblemSelect() {
+            const current = problemSelect.value;
+            problemSelect.innerHTML = '<option value="custom">✨ 自分で英文を入力して音読する</option>';
+
+            problems.forEach((problem, index) => {
+                const option = document.createElement('option');
+                option.value = String(index);
+                option.textContent = problem.title || `問題 ${index + 1}`;
+                problemSelect.appendChild(option);
+            });
+
+            if (current !== null && (current === 'custom' || problems[Number(current)])) {
+                problemSelect.value = current;
+            } else {
+                problemSelect.value = 'custom';
+            }
+            updateSelectedProblem();
+        }
+
+        function updateSelectedProblem() {
+            const value = problemSelect.value;
+
+            if (value === 'custom') {
+                problemTextDisplay.style.display = 'none';
+                customTextInput.style.display = 'block';
+                problemTitleInput.value = '';
+                problemTextInput.value = '';
+                deleteProblemBtn.disabled = true;
+            } else {
+                const index = Number(value);
+                const problem = Number.isInteger(index) && problems[index] ? problems[index] : null;
+
+                if (problem) {
+                    problemTextDisplay.textContent = problem.text;
+                    problemTextDisplay.style.display = 'block';
+                    customTextInput.style.display = 'none';
+                    problemTitleInput.value = problem.title || '';
+                    problemTextInput.value = problem.text || '';
+                    deleteProblemBtn.disabled = false;
+                }
+            }
+        }
+
+        problemSelect.addEventListener('change', updateSelectedProblem);
+
+        saveProblemBtn.addEventListener('click', () => {
+            const title = problemTitleInput.value.trim();
+            const problemText = problemTextInput.value.trim();
+
+            if (!title || !problemText) {
+                alert('問題名と英文の両方を入力してください。');
+                return;
+            }
+
+            const selectedIndex = Number(problemSelect.value);
+
+            if (problemSelect.value !== 'custom' && Number.isInteger(selectedIndex) && problems[selectedIndex]) {
+                problems[selectedIndex] = { title, text: problemText };
+                saveProblems();
+                renderProblemSelect();
+                problemSelect.value = String(selectedIndex);
+                updateSelectedProblem();
+                alert('問題を更新しました。');
+            } else {
+                problems.push({ title, text: problemText });
+                saveProblems();
+                renderProblemSelect();
+                problemSelect.value = String(problems.length - 1);
+                updateSelectedProblem();
+                alert('問題を登録しました。');
+            }
+        });
+
+        deleteProblemBtn.addEventListener('click', () => {
+            const index = Number(problemSelect.value);
+            if (problemSelect.value === 'custom' || !Number.isInteger(index) || !problems[index]) return;
+
+            if (!confirm(`「${problems[index].title}」を削除しますか？`)) return;
+
+            problems.splice(index, 1);
+            saveProblems();
+            renderProblemSelect();
+        });
+
+        if (!localStorage.getItem(PROBLEM_STORAGE_KEY)) {
+            problems = [
+                {
+                    title: 'サンプル問題',
+                    text: 'I went to the library yesterday.'
+                }
+            ];
+            saveProblems();
+        }
+
+        loadProblems();
+
+        // 音声保存ボタン
+        downloadBtn.addEventListener('click', () => {
+            if (!audioBlob) return;
+
+            const now = new Date();
+            const timeString = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+            const fileName = `ondoku_${timeString}.webm`;
+
+            const a = document.createElement('a');
+            a.href = audioUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        // 5秒戻る
+        rewindBtn.addEventListener('click', () => {
+            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+        });
+
+        // 5秒進む
+        forwardBtn.addEventListener('click', () => {
+            audioPlayer.currentTime = Math.min(audioPlayer.duration || 0, audioPlayer.currentTime + 5);
+        });
+
+        // 再生速度の変更
+        speedSelect.addEventListener('change', (e) => {
+            audioPlayer.playbackRate = parseFloat(e.target.value);
+        });
+    </script>
+</body>
+</html>
